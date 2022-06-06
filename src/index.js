@@ -30,4 +30,3 @@ listWrapper.forEach((item) => {
   });
 });
 btn.forEach((item) => item.addEventListener('click', () => task.delete(item.classList[item.classList.length - 1])));
-
