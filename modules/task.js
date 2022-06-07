@@ -4,29 +4,30 @@ export default class Task {
     this.editId = null;
   }
 
-  addList() {
+  addTasks() {
     const taskInput = document.getElementById('task-input');
     const list = { description: '', completed: false, index: 0 };
     list.description = taskInput.value;
     if (!list.description) {
       return null;
-    } if (this.editId) {
-      const index = this.editId[this.editId.length - 1];
+    }
+    if (this.editId) {
+      const index = Number(this.editId[this.editId.length - 1]);
+      list.index = index + 1;
       this.lists.splice(index, 1, list);
-      localStorage.setItem('list', JSON.stringify(this.lists));
     } else {
       list.index = this.lists.length + 1;
       this.lists.push(list);
-      localStorage.setItem('list', JSON.stringify(this.lists));
-      this.showLists([list]);
+      this.showTasks([list]);
       taskInput.value = '';
     }
+    localStorage.setItem('list', JSON.stringify(this.lists));
     window.location.reload();
     this.isEditing = null;
     return true;
   }
 
-  showLists(list) {
+  showTasks(list) {
     const renderedList = list || this.lists;
     renderedList.forEach((item, index) => {
       const wrapper = document.getElementById('list-ul');
@@ -52,9 +53,22 @@ export default class Task {
     this.editId = id;
   }
 
-  delete(deleteClass) {
-    const delList = document.querySelectorAll('.del-btn');
-    delList.forEach((item) => {
+  updateIndex = () => {
+    this.lists.forEach((task, index) => {
+      task.index = index + 1;
+    });
+    localStorage.setItem('list', JSON.stringify(this.lists));
+  }
+
+  updateList = (oldIndex, newIndex) => {
+    this.lists.splice(newIndex, 0, this.lists.splice(oldIndex, 1)[0]);
+    this.updateIndex();
+    localStorage.setItem('list', JSON.stringify(this.lists));
+  }
+
+  deleteTask(deleteClass) {
+    const deleteItems = document.querySelectorAll('.del-btn');
+    deleteItems.forEach((item) => {
       if (item.classList.contains(deleteClass)) {
         const index = deleteClass[deleteClass.length];
         this.lists.splice(index, 1);
@@ -67,30 +81,35 @@ export default class Task {
     });
   }
 
-  completed() {
-    const listId = this.parentElement.parentElement.parentElement.id;
-    const index = listId[listId.length - 1];
-    const isElementChecked = this.checked;
-    this.nextElementSibling.classList.toggle('checked');
-    const lists = JSON.parse(localStorage.getItem('list'));
-    lists.splice(index, 1, {
-      description: this.nextElementSibling.innerHTML,
-      completed: isElementChecked,
-      index,
+  completed(item) {
+    const listId = item.parentElement.parentElement.parentElement.id;
+    const index = Number(listId[listId.length - 1]);
+    const isElementChecked = item.checked;
+    item.nextElementSibling.classList.toggle('checked');
+    const { lists } = this;
+    const modifiedList = lists.map((list) => {
+      if (list.index === index + 1) {
+        return {
+          description: list.description,
+          completed: isElementChecked,
+          index: list.index,
+        };
+      }
+      return list;
     });
-    localStorage.setItem('list', JSON.stringify(lists));
+    this.lists = modifiedList;
+    localStorage.setItem('list', JSON.stringify(modifiedList));
   }
 
   clearComplete() {
     const completedTasks = document.querySelectorAll('.checked');
     completedTasks.forEach((task) => {
       const { parentElement } = task.parentElement.parentElement;
-      const elementId = parentElement.id;
-      const index = elementId[elementId.length - 1];
-      this.lists[index].completed = true;
       const filteredList = this.lists.filter((task) => task.completed !== true);
       localStorage.setItem('list', JSON.stringify(filteredList));
-      window.location.reload();
+      this.lists = filteredList;
+      parentElement.remove();
+      this.updateIndex();
     });
   }
 }
